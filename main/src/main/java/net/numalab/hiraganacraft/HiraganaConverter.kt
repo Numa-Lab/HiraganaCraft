@@ -40,6 +40,8 @@ class HiraganaConverter(private val jaFileReader: Reader) {
     operator fun get(material: Material) = get(material.translationKey)
     operator fun get(itemStack: ItemStack) = get(itemStack.type)
 
+    fun getAllEntries() = json?.entries?.toList() ?: listOf()
+
     private fun validateChar(char: Char): Boolean {
         return map.keys.contains(char)
     }

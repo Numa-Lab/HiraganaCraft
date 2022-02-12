@@ -27,6 +27,7 @@ class Hiraganacraft : JavaPlugin() {
     }
 
     private val converter = HiraganaConverter(this.getTextResource("ja_jp.json")!!)
+    private val recipeHelper = HiraganaRecipeHelper(this, converter)
 
     init {
         flyLib {
@@ -71,7 +72,7 @@ class Hiraganacraft : JavaPlugin() {
         return generateItemStacks(converted).onEach { it.amount = itemStack.amount }
     }
 
-    private fun generateItemStacks(str: String): List<ItemStack> =
+    fun generateItemStacks(str: String): List<ItemStack> =
         converter.toChars(str).mapNotNull { generateItemStack(it) }
 
     private fun generateItemStack(char: Char): ItemStack? {
@@ -110,6 +111,7 @@ class Hiraganacraft : JavaPlugin() {
 
     override fun onEnable() {
         // Plugin startup logic
+        recipeHelper.registerAllRecipes()
     }
 
     override fun onDisable() {
