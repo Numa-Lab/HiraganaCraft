@@ -1,0 +1,5 @@
+name: Hiraganacraft
+version: '${project.version}'
+main: net.numalab.hiraganacraft.Hiraganacraft
+api-version: 1.16
+authors: [ Bun133 ]
