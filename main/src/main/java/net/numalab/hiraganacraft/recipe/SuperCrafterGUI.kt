@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.inventory.*
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import java.lang.Integer.max
 
 
 /**
@@ -33,7 +34,39 @@ class SuperCrafterGUI(
         SuperCrafterEventListener.getInstance(plugin).unregisterGUI(this)
     }
 
+    fun reopen() {
+        player.closeInventory()
+        player.openInventory(gui)
+    }
+
     private fun onClick(e: InventoryClickEvent) {
+        if (e.slot == 53) {
+            // プレイヤーが出力スロットをクリックした場合
+            // 強制的にインベントリに移動させる
+            val current = e.currentItem
+            if (current != null && current.type == Material.BARRIER) {
+                e.isCancelled = true
+            }
+            if (current != null && current.type != Material.AIR && current.type != Material.BARRIER) {
+                val clonedCurrent = current.clone()
+                plugin.server.scheduler.runTaskLater(
+                    plugin,
+                    Runnable {
+                        val toRemoveAmount = clonedCurrent.amount
+                        (0..52).forEach {
+                            val toModified = max((gui.getItem(it)?.amount ?: 0) - toRemoveAmount, 0)
+                            if (toModified > 0) {
+                                gui.setItem(it, gui.getItem(it)!!.apply { amount = toModified })
+                            } else {
+                                gui.setItem(it, null)
+                            }
+                        }
+
+                        update()
+                    }, 2
+                )
+            }
+        }
         update()
     }
 
@@ -46,19 +79,24 @@ class SuperCrafterGUI(
     }
 
     private fun update() {
-        val inputStr = buildString()
-        val outputStacks = recipeManager.craftResult(inputStr)
-        if (outputStacks.isEmpty()) {
-            // None Recipe Matched
-            gui.setItem(53, ItemStack(Material.BARRIER))
-        } else if (outputStacks.size == 1) {
-            // Single Result
-            gui.setItem(53, outputStacks[0])
-        } else {
-            // Multiple Result
-            // This Branch should not be reached
-            gui.setItem(53, ItemStack(Material.BARRIER))
-        }
+        plugin.server.scheduler.runTaskLater(
+            plugin,
+            Runnable {
+                val inputStr = buildString()
+                val outputStacks = recipeManager.craftResult(inputStr)
+                if (outputStacks.isEmpty()) {
+                    // None Recipe Matched
+                    gui.setItem(53, ItemStack(Material.BARRIER))
+                } else if (outputStacks.size == 1) {
+                    // Single Result
+                    gui.setItem(53, outputStacks[0])
+                } else {
+                    // Multiple Result
+                    // This Branch should not be reached
+                    gui.setItem(53, ItemStack(Material.BARRIER))
+                }
+            }, 1
+        )
     }
 
     private fun buildString(): String {
