@@ -27,7 +27,7 @@ class Hiraganacraft : JavaPlugin() {
     }
 
     private val converter = HiraganaConverter(this.getTextResource("ja_jp.json")!!)
-    private val recipeHelper = HiraganaRecipeHelper(this, converter)
+    private val recipeHelper = HiraganaRecipeHelper(this, converter,config)
 
     init {
         flyLib {
@@ -111,7 +111,7 @@ class Hiraganacraft : JavaPlugin() {
 
     override fun onEnable() {
         // Plugin startup logic
-        recipeHelper.registerAllRecipes()
+        recipeHelper.recipeAll()
     }
 
     override fun onDisable() {
