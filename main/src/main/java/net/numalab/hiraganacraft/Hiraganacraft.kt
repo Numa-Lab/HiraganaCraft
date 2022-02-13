@@ -5,6 +5,8 @@ import dev.kotx.flylib.flyLib
 import net.kunmc.lab.configlib.ConfigCommandBuilder
 import net.kyori.adventure.text.Component
 import net.numalab.hiraganacraft.command.MainCommand
+import net.numalab.hiraganacraft.command.SuperCrafterCommand
+import net.numalab.hiraganacraft.recipe.RecipeManager
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.EntityType
@@ -27,11 +29,12 @@ class Hiraganacraft : JavaPlugin() {
     }
 
     private val converter = HiraganaConverter(this.getTextResource("ja_jp.json")!!)
-    private val recipeHelper = HiraganaRecipeHelper(this, converter,config)
+    val recipeManager = RecipeManager()
+    private val recipeHelper = HiraganaRecipeHelper(this, converter, config, recipeManager)
 
     init {
         flyLib {
-            command(MainCommand(config, ConfigCommandBuilder(config).build()))
+            command(MainCommand(config, ConfigCommandBuilder(config).build(), SuperCrafterCommand()))
             listens(this)
         }
     }
