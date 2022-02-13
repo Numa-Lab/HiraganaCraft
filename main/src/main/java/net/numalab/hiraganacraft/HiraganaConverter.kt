@@ -27,17 +27,21 @@ class HiraganaConverter(private val jaFileReader: Reader) {
         }
     }
 
+    // Translation Key -> Material?
+    operator fun get(translationKey: String): Material? {
+        return Material.values().find { it.translationKey == translationKey }
+    }
+
     // ItemStack -> Material -> String
-    operator fun get(str: String): String? {
-        val value = json?.get(str)
-        if (value != null) {
-            return mapString(value)
+    operator fun get(material: Material): String? {
+        val value = json?.get(material.translationKey)
+        return if (value != null) {
+            mapString(value)
         } else {
-            return null
+            null
         }
     }
 
-    operator fun get(material: Material) = get(material.translationKey)
     operator fun get(itemStack: ItemStack) = get(itemStack.type)
 
     fun getAllEntries() = json?.entries?.toList() ?: listOf()
@@ -51,6 +55,16 @@ class HiraganaConverter(private val jaFileReader: Reader) {
         return map[mappedChar]
     }
 
+    fun fromCustomModelDataInt(int: Int): Char? {
+        return map.entries.find { it.value == int }?.key
+    }
+
+    fun fromHiraganaCard(itemStack: ItemStack): Char? {
+        if (itemStack.type == Material.PAPER && itemStack.itemMeta.hasCustomModelData()) {
+            return fromCustomModelDataInt(itemStack.itemMeta.customModelData)
+        }
+        return null
+    }
     /**
      * Convert String to Valid Chars
      */

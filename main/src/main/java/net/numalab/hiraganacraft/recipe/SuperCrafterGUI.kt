@@ -1,8 +1,10 @@
 package net.numalab.hiraganacraft.recipe
 
 import net.kyori.adventure.text.Component
+import net.numalab.hiraganacraft.HiraganaConverter
 import net.numalab.hiraganacraft.Hiraganacraft
 import org.bukkit.Bukkit
+import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.inventory.*
@@ -17,7 +19,8 @@ import org.bukkit.inventory.ItemStack
 class SuperCrafterGUI(
     private val player: Player,
     private val plugin: Hiraganacraft,
-    private val recipeManager: RecipeManager = plugin.recipeManager
+    private val recipeManager: RecipeManager = plugin.recipeManager,
+    private val converter: HiraganaConverter = plugin.converter
 ) {
     private val gui = Bukkit.getServer().createInventory(player, 54, Component.text("スーパークラフター"))
     fun open() {
@@ -31,114 +34,41 @@ class SuperCrafterGUI(
     }
 
     private fun onClick(e: InventoryClickEvent) {
-        plugin.server.scheduler.runTaskLater(plugin, Runnable {
-            update()
-        }, 1)
-        if (e.slot == 53) {
-            doCraft(e)
-        }
+        update()
     }
 
     private fun onDrag(e: InventoryDragEvent) {
-        plugin.server.scheduler.runTaskLater(plugin, Runnable {
-            update()
-        }, 1)
+        update()
     }
 
     private fun onMoveItem(e: InventoryMoveItemEvent) {
-    }
-
-    /**
-     * クラフト処理
-     */
-    private fun doCraft(e: InventoryClickEvent) {
-        val input = gui.contents[0..52].filterNotNull()
-        val outputList = recipeManager.craftResult(*input.toTypedArray())
-        if (outputList.size != 1) {
-            println("[SuperCrafter][ERROR]複数のレシピが登録されています")
-            return
-        }
-
-        val output = outputList.first()
-
-        if (e.currentItem != null && output.type == e.currentItem!!.type) {
-            // もともとアイテムがあった、かつ、そのアイテムがレシピにマッチする場合
-            val exceededRecipe =
-                recipeManager.matchedExceededRecipe(*input.toTypedArray())
-                    .filter { it.result.type == e.currentItem!!.type }
-            val shapelessRecipe =
-                recipeManager.matchedShapelessRecipe(*input.toTypedArray())
-                    .filter { it.result.type == e.currentItem!!.type }
-            if (exceededRecipe.size +
-                shapelessRecipe.size != 1
-            ) {
-                // レシピが複数マッチしていて判定が不可能
-                println("[SuperCrafter][ERROR] レシピが複数マッチしていて判定が不可能")
-            } else {
-                // 1つのレシピにマッチした場合
-                val out = if (exceededRecipe.firstOrNull() != null) {
-                    val recipe = exceededRecipe.first()
-                    minus(input, recipe.input.map { it.clone().also { s -> s.amount = s.amount * output.amount } })
-                } else if (shapelessRecipe.firstOrNull() != null) {
-                    val recipe = shapelessRecipe.first()
-                    minus(
-                        input,
-                        recipe.ingredientList.map { it.clone().also { s -> s.amount = s.amount * output.amount } })
-                } else {
-                    throw IllegalStateException("[SuperCrafter][ERROR] This Branch must be not reachable")
-                }
-                plugin.server.scheduler.runTaskLater(plugin, Runnable {
-                    gui.clear()
-                    gui.addItem(*out.toTypedArray())
-                    gui.close()
-                    player.openInventory(gui)
-                }, 2)
-            }
-        }
+        update()
     }
 
     private fun update() {
-        val input = gui.contents[0..52].filterNotNull()
-        val output = recipeManager.craftResult(*input.toTypedArray())
-        if (output.isEmpty()) {
-            gui.setItem(53, null)
-        } else if (output.size == 1) {
-            gui.setItem(53, output.first())
+        val inputStr = buildString()
+        val outputStacks = recipeManager.craftResult(inputStr)
+        if (outputStacks.isEmpty()) {
+            // None Recipe Matched
+            gui.setItem(53, ItemStack(Material.BARRIER))
+        } else if (outputStacks.size == 1) {
+            // Single Result
+            gui.setItem(53, outputStacks[0])
         } else {
-            println("[SuperCrafterGUI] Recipe is duplicated for Input:[${input.joinToString(",")}]")
-            gui.setItem(53, null)
+            // Multiple Result
+            // This Branch should not be reached
+            gui.setItem(53, ItemStack(Material.BARRIER))
         }
     }
 
-    /**
-     * To minus [minus] from [input],considering the amount and type of each item
-     */
-    private fun minus(input: List<ItemStack>, minus: List<ItemStack>): List<ItemStack> {
-        var result = mutableListOf(*input.toTypedArray())
-        minus.forEach { toMinus ->
-            result = minus(result, toMinus).toMutableList()
-        }
-        return result
-    }
-
-    private fun minus(input: List<ItemStack>, minus: ItemStack): List<ItemStack> {
-        var toMinus = minus.amount
-        input.forEach {
-            if (it.type == minus.type) {
-                if (toMinus > it.amount) {
-                    toMinus -= it.amount
-                    it.amount = 0
-                } else {
-                    it.amount -= toMinus
-                    toMinus = 0
-                }
+    private fun buildString(): String {
+        var str = ""
+        gui.contents.takeWhile { it != null }.forEach {
+            converter.fromHiraganaCard(it)?.let { c ->
+                str += c
             }
         }
-
-        if (toMinus > 0) {
-            throw IllegalStateException("[SuperCrafter] Not enough item to minus")
-        }
-        return input.filter { it.amount > 0 }
+        return str
     }
 
 

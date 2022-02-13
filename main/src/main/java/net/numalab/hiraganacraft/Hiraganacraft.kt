@@ -28,8 +28,8 @@ class Hiraganacraft : JavaPlugin() {
         it.loadConfig()
     }
 
-    private val converter = HiraganaConverter(this.getTextResource("ja_jp.json")!!)
-    val recipeManager = RecipeManager()
+    val converter = HiraganaConverter(this.getTextResource("ja_jp.json")!!)
+    val recipeManager = RecipeManager(converter)
     private val recipeHelper = HiraganaRecipeHelper(this, converter, config, recipeManager)
 
     init {

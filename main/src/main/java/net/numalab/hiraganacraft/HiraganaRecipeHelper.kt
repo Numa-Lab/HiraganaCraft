@@ -8,7 +8,7 @@ import org.bukkit.NamespacedKey
 import org.bukkit.Server
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.Recipe
-import org.bukkit.inventory.ShapelessRecipe
+import org.bukkit.inventory.ShapedRecipe
 
 class HiraganaRecipeHelper(
     private val plugin: Hiraganacraft,
@@ -63,32 +63,66 @@ class HiraganaRecipeHelper(
         plugin.logger.info("Registering recipes...Complete!")
     }
 
-    private fun getAllRecipes(): List<ShapelessRecipe> {
+    private fun getAllRecipes(): List<ShapedRecipe> {
         return converter.getAllEntries()
             .filter { it.value.length <= 9 }
             .mapNotNull {
-                val material = findMaterial(it.key) ?: return@mapNotNull null
+                val material = converter[it.key] ?: return@mapNotNull null
                 return@mapNotNull generateRecipe(material, it.value, it.key)
             }
     }
 
-    private fun generateRecipe(to: Material, from: String, key: String): ShapelessRecipe? {
+    private fun generateRecipe(to: Material, from: String, key: String): ShapedRecipe? {
         if (to.isAir) {
             return null
         }
-        val recipe = ShapelessRecipe(NamespacedKey(plugin, "recipe-${key}"), ItemStack(to))
+
+        val nameSpacedKey = NamespacedKey(plugin, key)
         val ingredients = plugin.generateItemStacks(from)
-        ingredients.forEach {
-            recipe.addIngredient(it)
+        val recipe = ShapedRecipe(nameSpacedKey, ItemStack(to, 1))
+        val shape = generateRecipeShape(ingredients).toTypedArray()
+        if (shape.size > 9) {
+            println("[ERROR][HiraganaRecipeHelper] ${to.name} is too long")
+            return null
+        }
+        try {
+            recipe.shape(*(shape))
+        }catch (e:Exception){
+            e
+        }
+        val const = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        ingredients.forEachIndexed { index, itemStack ->
+            recipe.setIngredient(const[index], itemStack)
         }
         return recipe
+    }
+
+    /**
+     * Generate recipe shape
+     * 1. Count the number of ingredients
+     * 2. Generate string filled with 'A','B','C'.. for each ingredient
+     * 3. Concat that strings into one string
+     * 4. Split that string into array of strings at size with 3
+     */
+    private fun generateRecipeShape(ingredients: List<ItemStack>): List<String> {
+        val size = ingredients.size
+        val shape = StringBuilder()
+        val const = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        for (i in 0 until size) {
+            shape.append(const[i])
+        }
+        for (i in size until 9) {
+            shape.append(" ")
+        }
+        val shapeString = shape.toString()
+        return shapeString.split(Regex("(?<=\\G.{3})")).filter { it.isNotEmpty() }
     }
 
     private fun getAllExceededRecipes(): List<ExceededRecipe> {
         return converter.getAllEntries()
             .filter { it.value.length in 10..53 }
             .mapNotNull {
-                val material = findMaterial(it.key) ?: return@mapNotNull null
+                val material = converter[it.key] ?: return@mapNotNull null
                 return@mapNotNull generateExceededRecipe(material, it.value)
             }
     }
@@ -97,12 +131,7 @@ class HiraganaRecipeHelper(
         if (to.isAir) {
             return null
         }
-        val ingredients = plugin.generateItemStacks(from)
-        return ExceededRecipe(ItemStack(to), *ingredients.toTypedArray())
-    }
-
-    private fun findMaterial(translationKey: String): Material? {
-        return Material.values().find { it.translationKey == translationKey }
+        return ExceededRecipe(ItemStack(to), from)
     }
 }
 

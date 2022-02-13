@@ -1,82 +1,46 @@
 package net.numalab.hiraganacraft.recipe
 
+import net.numalab.hiraganacraft.HiraganaConverter
 import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.ShapelessRecipe
-import java.lang.Integer.max
+import org.bukkit.inventory.ShapedRecipe
 
 /**
  * Manage All Recipes
  */
-class RecipeManager {
+class RecipeManager(val converter: HiraganaConverter) {
     private val exceededRecipes = mutableListOf<ExceededRecipe>()
-    private val shapelessRecipes = mutableListOf<ShapelessRecipe>()
+    private val shapedRecipe = mutableListOf<ShapedRecipe>()
     fun addRecipe(recipe: ExceededRecipe) {
         exceededRecipes.add(recipe)
     }
 
-    fun addRecipe(recipe: ShapelessRecipe) {
-        shapelessRecipes.add(recipe)
+    fun addRecipe(recipe: ShapedRecipe) {
+        shapedRecipe.add(recipe)
     }
 
     fun removeRecipe(recipe: ExceededRecipe) {
         exceededRecipes.remove(recipe)
     }
 
-    fun removeRecipe(recipe: ShapelessRecipe) {
-        shapelessRecipes.remove(recipe)
+    fun removeRecipe(recipe: ShapedRecipe) {
+        shapedRecipe.remove(recipe)
     }
 
-    fun size() = exceededRecipes.size + shapelessRecipes.size
+    fun size() = exceededRecipes.size + shapedRecipe.size
 
     /**
      * @return all matched Recipes
      */
-    fun craftResult(vararg actualInput: ItemStack): List<ItemStack> {
-        val ex = exceededRecipes
-            .mapNotNull {
-                val result = it.craftResult(*actualInput) ?: return@mapNotNull null
-                Pair(result, it.input.size)
-            }
-        val sh = shapelessRecipes
-            .mapNotNull {
-                val result = it.craftResult(*actualInput) ?: return@mapNotNull null
-                Pair(result, it.ingredientList.size)
-            }
-        if (ex.isEmpty()) {
-            if (sh.isEmpty()) return emptyList()
-            else {
-                val shM = sh.maxOf { it.second }
-                return sh.filter { it.second == shM }.map { it.first }
-            }
+    fun craftResult(str: String): List<ItemStack> {
+        return if (str.length <= 9) {
+            // Shaped Recipe
+            shapedRecipe.filter { shapedRecipe1 ->
+                str == shapedRecipe1.ingredientMap.values.filterNotNull().mapNotNull { converter.fromHiraganaCard(it) }
+                    .joinToString("")
+            }.map { it.result.clone() }
         } else {
-            val shM = sh.maxOf { it.second }
-            val exM = ex.maxOf { it.second }
-            val max = max(shM, exM)
-            return ex.filter { it.second == max }.map { it.first } +
-                    sh.filter { it.second == max }.map { it.first }
+            // Exceeded Recipe
+            exceededRecipes.filter { it.input == str }.map { it.result.clone() }
         }
-    }
-
-    fun matchedExceededRecipe(vararg actualInput: ItemStack): List<ExceededRecipe> =
-        exceededRecipes.filter { it.craftResult(*actualInput) != null }
-
-    fun matchedShapelessRecipe(vararg actualInput: ItemStack): List<ShapelessRecipe> =
-        shapelessRecipes.filter { it.craftResult(*actualInput) != null }
-
-    private fun ShapelessRecipe.craftResult(vararg actualInput: ItemStack): ItemStack? {
-        val resultAmount = ingredientList.minOfOrNull {
-            val acAmount = actualInput.sumOf { ac ->
-                if (it.isSimilar(ac)) {
-                    ac.amount
-                } else {
-                    0
-                }
-            }
-            acAmount / it.amount
-        } ?: 0
-
-        if (resultAmount == 0) return null
-
-        return result.clone().apply { amount = resultAmount * result.amount }
     }
 }
