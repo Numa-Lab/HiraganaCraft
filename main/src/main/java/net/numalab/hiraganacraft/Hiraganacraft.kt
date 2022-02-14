@@ -23,7 +23,7 @@ import kotlin.random.Random
 import kotlin.streams.toList
 
 class Hiraganacraft : JavaPlugin() {
-    private val config = HiraganaConfig(this).also {
+    val config = HiraganaConfig(this).also {
         it.saveConfigIfAbsent()
         it.loadConfig()
     }
@@ -45,7 +45,7 @@ class Hiraganacraft : JavaPlugin() {
             if (config.isEnabled.value() && it.isDropItems) {
                 it.isDropItems = false
                 val toDrop =
-                    converter[it.block.type]?.let { str -> generateItemStacks(str).reducedBy(config.dropRate.value()) }
+                    getNameReplaced(it.block.type)?.let { str -> generateItemStacks(str).reducedBy(config.dropRate.value()) }
                 toDrop?.forEach { stack ->
                     it.block.location.world.dropItem(it.block.location, stack)
                 }
@@ -68,10 +68,21 @@ class Hiraganacraft : JavaPlugin() {
     }
 
     /**
+     * スーパークラフターの時は、「すーぱーくらふたー」を返す
+     */
+    private fun getNameReplaced(material: Material): String? {
+        return if (config.superCrafterMaterial.value() == material) {
+            "すーぱーくらふたー"
+        } else {
+            converter[material]
+        }
+    }
+
+    /**
      * @return converted item stack into hiragana cards
      */
     private fun intoHiraganaCards(itemStack: ItemStack): List<ItemStack> {
-        val converted = converter[itemStack.type] ?: return listOf()
+        val converted = getNameReplaced(itemStack.type) ?: return listOf()
         return generateItemStacks(converted).onEach { it.amount = itemStack.amount }
     }
 
@@ -115,6 +126,7 @@ class Hiraganacraft : JavaPlugin() {
     override fun onEnable() {
         // Plugin startup logic
         recipeHelper.recipeAll()
+        SuperCrafterOpener(this)
     }
 
     override fun onDisable() {

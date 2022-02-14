@@ -39,11 +39,11 @@ class HiraganaRecipeHelper(
     private fun registerAllRecipes() {
         plugin.logger.info("Registering recipes...")
 
-        var shapeless = 0
+        var shaped = 0
         var exceeded = 0
 
         getAllRecipes().also {
-            shapeless = it.size
+            shaped = it.size
         }.forEach {
             plugin.server.addRecipe(it)
             recipeManager.addRecipe(it)
@@ -55,12 +55,26 @@ class HiraganaRecipeHelper(
             recipeManager.addRecipe(it)
         }
 
-        println("Shapeless: $shapeless")
+        registerSuperCrafterRecipe()
+
+        println("Shaped: $shaped")
         println("Exceeded: $exceeded")
         println("RecipeManager:${recipeManager.size()}")
-        println("Total: ${shapeless + exceeded}")
-        println("Not Registered: ${converter.getAllEntries().size - (shapeless + exceeded)}")
+        println("Total: ${shaped + exceeded}")
+        println("Not Registered: ${converter.getAllEntries().size - (shaped + exceeded)}")
         plugin.logger.info("Registering recipes...Complete!")
+    }
+
+    private fun registerSuperCrafterRecipe() {
+        // 作業台*9 -> スーパークラフター
+        val shaped =
+            ShapedRecipe(NamespacedKey(plugin, "super_crafter"), ItemStack(config.superCrafterMaterial.value()))
+        shaped.shape("AAA", "AAA", "AAA")
+        shaped.setIngredient('A', Material.CRAFTING_TABLE)
+        plugin.server.addRecipe(shaped)
+
+        // ひらがなカード「すーぱーくらふたー」 -> スーパークラフター
+        recipeManager.addRecipe(generateRecipe(config.superCrafterMaterial.value(), "すーぱーくらふたー","super_crafter")!!)
     }
 
     private fun getAllRecipes(): List<ShapedRecipe> {
@@ -68,6 +82,9 @@ class HiraganaRecipeHelper(
             .filter { it.value.length <= 9 }
             .mapNotNull {
                 val material = converter[it.key] ?: return@mapNotNull null
+                if (config.superCrafterMaterial.value() == material) {
+                    return@mapNotNull null  // remove dummy block for super crafter
+                }
                 return@mapNotNull generateRecipe(material, it.value, it.key)
             }
     }
@@ -87,7 +104,7 @@ class HiraganaRecipeHelper(
         }
         try {
             recipe.shape(*(shape))
-        }catch (e:Exception){
+        } catch (e: Exception) {
             e
         }
         val const = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -123,6 +140,9 @@ class HiraganaRecipeHelper(
             .filter { it.value.length in 10..53 }
             .mapNotNull {
                 val material = converter[it.key] ?: return@mapNotNull null
+                if (config.superCrafterMaterial.value() == material) {
+                    return@mapNotNull null  // remove dummy block for super crafter
+                }
                 return@mapNotNull generateExceededRecipe(material, it.value)
             }
     }
