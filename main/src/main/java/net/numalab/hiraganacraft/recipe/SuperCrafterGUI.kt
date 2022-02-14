@@ -82,7 +82,7 @@ class SuperCrafterGUI(
      * 余ったアイテムを返却する
      */
     private fun onClose(e: InventoryCloseEvent) {
-        close()
+        SuperCrafterEventListener.getInstance(plugin).unregisterGUI(this)
         val toDrop = e.player.inventory.addItem(*gui.contents[0..52].filterNotNull().toTypedArray()).values
         toDrop.forEach {
             e.player.world.dropItem(e.player.location, it)
