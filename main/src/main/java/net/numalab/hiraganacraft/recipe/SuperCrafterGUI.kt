@@ -78,6 +78,18 @@ class SuperCrafterGUI(
         update()
     }
 
+    /**
+     * 余ったアイテムを返却する
+     */
+    private fun onClose(e: InventoryCloseEvent) {
+        close()
+        val toDrop = e.player.inventory.addItem(*gui.contents[0..52].filterNotNull().toTypedArray()).values
+        toDrop.forEach {
+            e.player.world.dropItem(e.player.location, it)
+        }
+        gui.clear()
+    }
+
     private fun update() {
         plugin.server.scheduler.runTaskLater(
             plugin,
@@ -147,6 +159,11 @@ class SuperCrafterGUI(
         @EventHandler
         private fun onInventoryDrag(event: InventoryDragEvent) {
             getInventory(event)?.onDrag(event)
+        }
+
+        @EventHandler
+        private fun onCloseInventory(event: InventoryCloseEvent) {
+            getInventory(event)?.onClose(event)
         }
 
         private fun getInventory(e: InventoryEvent): SuperCrafterGUI? {
