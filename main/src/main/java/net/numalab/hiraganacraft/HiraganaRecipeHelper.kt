@@ -143,7 +143,7 @@ class HiraganaRecipeHelper(
                 if (config.superCrafterMaterial.value() == material) {
                     return@mapNotNull null  // remove dummy block for super crafter
                 }
-                return@mapNotNull generateExceededRecipe(material, it.value)
+                return@mapNotNull generateExceededRecipe(material, converter.mapString(it.value))   // 小文字などを変換
             }
     }
 
