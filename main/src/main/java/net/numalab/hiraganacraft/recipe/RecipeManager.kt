@@ -37,7 +37,7 @@ class RecipeManager(val converter: HiraganaConverter) {
             shapedRecipe.filter { shapedRecipe1 ->
                 str == shapedRecipe1.ingredientMap.values.filterNotNull().mapNotNull { converter.fromHiraganaCard(it) }
                     .joinToString("")
-            }.map { it.result.clone() }
+            }.map { it.result.clone() }.distinctBy { it.type }  // 2*2と3*3で同じレシピがあるので、重複を除去
         } else {
             // Exceeded Recipe
             exceededRecipes.filter { it.input == str }.map { it.result.clone() }

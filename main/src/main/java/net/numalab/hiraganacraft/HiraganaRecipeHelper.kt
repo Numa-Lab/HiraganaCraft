@@ -39,11 +39,19 @@ class HiraganaRecipeHelper(
     private fun registerAllRecipes() {
         plugin.logger.info("Registering recipes...")
 
-        var shaped = 0
+        var shaped2By2 = 0
+        var shaped3By3 = 0
         var exceeded = 0
 
-        getAllRecipes().also {
-            shaped = it.size
+        get2By2Recipes().also {
+            shaped2By2 = it.size
+        }.forEach {
+            plugin.server.addRecipe(it)
+            recipeManager.addRecipe(it)
+        }
+
+        get3By3Recipes().also {
+            shaped3By3 = it.size
         }.forEach {
             plugin.server.addRecipe(it)
             recipeManager.addRecipe(it)
@@ -57,11 +65,13 @@ class HiraganaRecipeHelper(
 
         registerSuperCrafterRecipe()
 
-        println("Shaped: $shaped")
+        println("Shaped2By2: $shaped2By2")
+        println("Shaped3By3: $shaped3By3")
+        println("Shaped: ${shaped3By3 + shaped2By2}")
         println("Exceeded: $exceeded")
         println("RecipeManager:${recipeManager.size()}")
-        println("Total: ${shaped + exceeded}")
-        println("Not Registered: ${converter.getAllEntries().size - (shaped + exceeded)}")
+        println("Total: ${shaped2By2 + shaped3By3 + exceeded}")
+        println("Not Registered: ${converter.getAllEntries().size - (shaped3By3 + exceeded)}")
         plugin.logger.info("Registering recipes...Complete!")
     }
 
@@ -74,10 +84,67 @@ class HiraganaRecipeHelper(
         plugin.server.addRecipe(shaped)
 
         // ひらがなカード「すーぱーくらふたー」 -> スーパークラフター
-        recipeManager.addRecipe(generateRecipe(config.superCrafterMaterial.value(), "すーぱーくらふたー","super_crafter")!!)
+        recipeManager.addRecipe(generate3By3Recipe(config.superCrafterMaterial.value(), "すーぱーくらふたー", "super_crafter")!!)
     }
 
-    private fun getAllRecipes(): List<ShapedRecipe> {
+    private fun get2By2Recipes(): List<ShapedRecipe> {
+        return converter.getAllEntries()
+            .filter { it.value.length <= 4 }
+            .mapNotNull {
+                val material = converter[it.key] ?: return@mapNotNull null
+                if (config.superCrafterMaterial.value() == material) {
+                    return@mapNotNull null  // remove dummy block for super crafter
+                }
+                return@mapNotNull generate2By2Recipe(material, it.value, "${it.key}_2by2")  // 3*3のレシピIDとかぶらないように「_2by2」を付ける
+            }
+    }
+
+    private fun generate2By2Recipe(to: Material, from: String, key: String): ShapedRecipe? {
+        if (to == Material.AIR) {
+            return null
+        }
+
+        val nameSpacedKey = NamespacedKey(plugin, key)
+        val ingredients = plugin.generateItemStacks(from)
+        val recipe = ShapedRecipe(nameSpacedKey, ItemStack(to, 1))
+        val shape = generate2By2RecipeShape(ingredients).toTypedArray()
+        if (shape.size > 9) {
+            println("[ERROR][HiraganaRecipeHelper] ${to.name} is too long")
+            return null
+        }
+        recipe.shape(*(shape))
+        val const = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        ingredients.forEachIndexed { index, itemStack ->
+            recipe.setIngredient(const[index], itemStack)
+        }
+        return recipe
+    }
+
+    /**
+     * Generate recipe shape
+     * 1. Count the number of ingredients
+     * 2. Generate string filled with 'A','B','C'.. for each ingredient
+     * 3. Concat that strings into one string
+     * 4. Split that string into array of strings at size with 2
+     */
+    private fun generate2By2RecipeShape(ingredients: List<ItemStack>): List<String> {
+        val size = ingredients.size
+        val shape = StringBuilder()
+        val const = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        for (i in 0 until size) {
+            shape.append(const[i])
+        }
+        for (i in size until 4) {
+            shape.append(" ")
+        }
+        val shapeString = shape.toString()
+        return shapeString.split(Regex("(?<=\\G.{2})")).filter { it.isNotEmpty() }
+    }
+
+    /**
+     * 3 * 3のレシピを取得する
+     */
+    private fun get3By3Recipes(): List<ShapedRecipe> {
         return converter.getAllEntries()
             .filter { it.value.length <= 9 }
             .mapNotNull {
@@ -85,11 +152,11 @@ class HiraganaRecipeHelper(
                 if (config.superCrafterMaterial.value() == material) {
                     return@mapNotNull null  // remove dummy block for super crafter
                 }
-                return@mapNotNull generateRecipe(material, it.value, it.key)
+                return@mapNotNull generate3By3Recipe(material, it.value, it.key)
             }
     }
 
-    private fun generateRecipe(to: Material, from: String, key: String): ShapedRecipe? {
+    private fun generate3By3Recipe(to: Material, from: String, key: String): ShapedRecipe? {
         if (to.isAir) {
             return null
         }
@@ -97,16 +164,12 @@ class HiraganaRecipeHelper(
         val nameSpacedKey = NamespacedKey(plugin, key)
         val ingredients = plugin.generateItemStacks(from)
         val recipe = ShapedRecipe(nameSpacedKey, ItemStack(to, 1))
-        val shape = generateRecipeShape(ingredients).toTypedArray()
+        val shape = generate3By3RecipeShape(ingredients).toTypedArray()
         if (shape.size > 9) {
             println("[ERROR][HiraganaRecipeHelper] ${to.name} is too long")
             return null
         }
-        try {
-            recipe.shape(*(shape))
-        } catch (e: Exception) {
-            e
-        }
+        recipe.shape(*(shape))
         val const = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         ingredients.forEachIndexed { index, itemStack ->
             recipe.setIngredient(const[index], itemStack)
@@ -121,7 +184,7 @@ class HiraganaRecipeHelper(
      * 3. Concat that strings into one string
      * 4. Split that string into array of strings at size with 3
      */
-    private fun generateRecipeShape(ingredients: List<ItemStack>): List<String> {
+    private fun generate3By3RecipeShape(ingredients: List<ItemStack>): List<String> {
         val size = ingredients.size
         val shape = StringBuilder()
         val const = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
