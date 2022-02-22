@@ -34,6 +34,11 @@ class HiraganaCraftResolver(
                 val result = recipeManager.craftResult(str)
                 e.inventory.result = result.getOrNull(0)
             }
+        } else if (e.inventory.matrix.toMutableList()
+                .also { it.removeAt(0) }
+                .any { it != null && converter.fromHiraganaCard(it) != null }) {
+            // 2つめ以降がひらがなカード
+            e.inventory.result = null
         }
     }
 }

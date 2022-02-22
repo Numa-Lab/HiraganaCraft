@@ -1,5 +1,6 @@
 package net.numalab.hiraganacraft
 
+import net.kyori.adventure.text.Component
 import net.numalab.hiraganacraft.recipe.ExceededRecipe
 import net.numalab.hiraganacraft.recipe.RecipeManager
 import org.bukkit.Keyed
@@ -68,6 +69,8 @@ class HiraganaRecipeHelper(
 
         registerSuperCrafterRecipe()
 
+        registerFinalItem()
+
         println("Shaped2By2: $shaped2By2")
         println("Shaped3By3: $shaped3By3")
         println("Shaped: ${shaped3By3 + shaped2By2}")
@@ -76,6 +79,22 @@ class HiraganaRecipeHelper(
         println("Total: ${shaped2By2 + shaped3By3 + exceeded}")
         println("Not Registered: ${converter.getAllEntries().size - (shaped3By3 + exceeded)}")
         plugin.logger.info("Registering recipes...Complete!")
+    }
+
+    private fun registerFinalItem() {
+        recipeManager.addRecipe(
+            ExceededRecipe(
+                ItemStack(Material.PAPER)
+                    .also {
+                        it.editMeta { m ->
+                            m.displayName(Component.text(config.finalname.value()))
+                            m.lore(config.finalLore.value().map { l -> Component.text(l) })
+                            m.setCustomModelData(1234)
+                        }
+                    },
+                "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"
+            )
+        )
     }
 
     private fun registerSuperCrafterRecipe() {
