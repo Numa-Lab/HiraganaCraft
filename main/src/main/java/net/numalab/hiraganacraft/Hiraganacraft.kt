@@ -127,6 +127,7 @@ class Hiraganacraft : JavaPlugin() {
         // Plugin startup logic
         recipeHelper.recipeAll()
         SuperCrafterOpener(this)
+        HiraganaCraftResolver(this, converter, recipeManager)
     }
 
     override fun onDisable() {

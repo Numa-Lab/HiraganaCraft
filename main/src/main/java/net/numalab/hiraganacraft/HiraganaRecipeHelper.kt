@@ -81,13 +81,17 @@ class HiraganaRecipeHelper(
     private fun registerSuperCrafterRecipe() {
         // 作業台*9 -> スーパークラフター
         val shaped =
-            ShapedRecipe(NamespacedKey(plugin, "super_crafter_from_crafter"), ItemStack(config.superCrafterMaterial.value()))
+            ShapedRecipe(
+                NamespacedKey(plugin, "super_crafter_from_crafter"),
+                ItemStack(config.superCrafterMaterial.value())
+            )
         shaped.shape("AAA", "AAA", "AAA")
         shaped.setIngredient('A', Material.CRAFTING_TABLE)
         plugin.server.addRecipe(shaped)
 
         // ひらがなカード「すーぱーくらふたー」 -> スーパークラフター
-        val superCrafter3By3 = generate3By3Recipe(config.superCrafterMaterial.value(), "すーぱーくらふたー", "super_crafter_from_hiragana")!!
+        val superCrafter3By3 =
+            generate3By3Recipe(config.superCrafterMaterial.value(), "すーぱーくらふたー", "super_crafter_from_hiragana")!!
         recipeManager.addRecipe(superCrafter3By3)
         plugin.server.addRecipe(superCrafter3By3)   // 作業台の方にも反映
     }
@@ -144,7 +148,7 @@ class HiraganaRecipeHelper(
             shape.append(const[i])
         }
         for (i in size until 4) {
-            shape.append(" ")
+            shape.append("#")
         }
         val shapeString = shape.toString()
         return shapeString.split(Regex("(?<=\\G.{2})")).filter { it.isNotEmpty() }
@@ -201,10 +205,10 @@ class HiraganaRecipeHelper(
             shape.append(const[i])
         }
         for (i in size until 9) {
-            shape.append(" ")
+            shape.append("#")
         }
         val shapeString = shape.toString()
-        return shapeString.split(Regex("(?<=\\G.{3})")).filter { it.isNotBlank() }
+        return shapeString.split(Regex("(?<=\\G.{3})")).filter { it.isNotEmpty() }
     }
 
     private fun getAllExceededRecipes(): List<ExceededRecipe> {
