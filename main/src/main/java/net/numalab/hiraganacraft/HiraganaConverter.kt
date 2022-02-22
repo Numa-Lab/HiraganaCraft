@@ -95,7 +95,7 @@ class HiraganaConverter(private val jaFileReader: Reader) {
             'ゎ' -> return 'わ'
             'が' -> return 'か'
             'ぎ' -> return 'き'
-            'ぐ' -> return 'ぐ'
+            'ぐ' -> return 'く'
             'げ' -> return 'け'
             'ご' -> return 'こ'
             'ざ' -> return 'さ'

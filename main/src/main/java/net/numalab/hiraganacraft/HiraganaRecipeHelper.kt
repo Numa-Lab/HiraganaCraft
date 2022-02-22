@@ -43,23 +43,26 @@ class HiraganaRecipeHelper(
         var shaped3By3 = 0
         var exceeded = 0
 
-        get2By2Recipes().also {
+        val recipe2By2 = get2By2Recipes().also {
             shaped2By2 = it.size
-        }.forEach {
+        }
+        recipe2By2.forEach {
             plugin.server.addRecipe(it)
             recipeManager.addRecipe(it)
         }
 
-        get3By3Recipes().also {
+        val recipe3By3 = get3By3Recipes().also {
             shaped3By3 = it.size
-        }.forEach {
+        }
+        recipe3By3.forEach {
             plugin.server.addRecipe(it)
             recipeManager.addRecipe(it)
         }
 
-        getAllExceededRecipes().also {
+        val recipeExceeded = getAllExceededRecipes().also {
             exceeded = it.size
-        }.forEach {
+        }
+        recipeExceeded.forEach {
             recipeManager.addRecipe(it)
         }
 
@@ -78,13 +81,15 @@ class HiraganaRecipeHelper(
     private fun registerSuperCrafterRecipe() {
         // 作業台*9 -> スーパークラフター
         val shaped =
-            ShapedRecipe(NamespacedKey(plugin, "super_crafter"), ItemStack(config.superCrafterMaterial.value()))
+            ShapedRecipe(NamespacedKey(plugin, "super_crafter_from_crafter"), ItemStack(config.superCrafterMaterial.value()))
         shaped.shape("AAA", "AAA", "AAA")
         shaped.setIngredient('A', Material.CRAFTING_TABLE)
         plugin.server.addRecipe(shaped)
 
         // ひらがなカード「すーぱーくらふたー」 -> スーパークラフター
-        recipeManager.addRecipe(generate3By3Recipe(config.superCrafterMaterial.value(), "すーぱーくらふたー", "super_crafter")!!)
+        val superCrafter3By3 = generate3By3Recipe(config.superCrafterMaterial.value(), "すーぱーくらふたー", "super_crafter_from_hiragana")!!
+        recipeManager.addRecipe(superCrafter3By3)
+        plugin.server.addRecipe(superCrafter3By3)   // 作業台の方にも反映
     }
 
     private fun get2By2Recipes(): List<ShapedRecipe> {
@@ -95,7 +100,11 @@ class HiraganaRecipeHelper(
                 if (config.superCrafterMaterial.value() == material) {
                     return@mapNotNull null  // remove dummy block for super crafter
                 }
-                return@mapNotNull generate2By2Recipe(material, it.value, "${it.key}_2by2")  // 3*3のレシピIDとかぶらないように「_2by2」を付ける
+                return@mapNotNull generate2By2Recipe(
+                    material,
+                    it.value,
+                    "${it.key}_2by2"
+                )  // 3*3のレシピIDとかぶらないように「_2by2」を付ける
             }
     }
 
@@ -195,7 +204,7 @@ class HiraganaRecipeHelper(
             shape.append(" ")
         }
         val shapeString = shape.toString()
-        return shapeString.split(Regex("(?<=\\G.{3})")).filter { it.isNotEmpty() }
+        return shapeString.split(Regex("(?<=\\G.{3})")).filter { it.isNotBlank() }
     }
 
     private fun getAllExceededRecipes(): List<ExceededRecipe> {
